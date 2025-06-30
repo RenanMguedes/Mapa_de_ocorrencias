@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa de Ocorrências - Brasil</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 600px;
+            width: 100%;
+        }
+        .info-box {
+            padding: 10px;
+            background: #fff;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+        }
+        .filtros {
+            margin-bottom: 20px;
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 8px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .filtros label {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Mapa de Ocorrências no Brasil</h1>
+    <form class="filtros" id="filtros-form">
+        <label>Cidade: <input type="text" id="filtro-cidade" name="cidade"></label>
+        <label>Classificação: <input type="text" id="filtro-classificacao" name="classificacao"></label>
+        <label>Categoria: <input type="text" id="filtro-categoria" name="categoria"></label>
+        <button type="submit">Filtrar</button>
+        <button type="button" id="limpar-filtros">Limpar</button>
+    </form>
+    <div id="map"></div>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        // Inicializa o mapa centralizando no Brasil
+        const map = L.map('map').setView([-15.7801, -47.9292], 4);
+
+        // Adiciona o layer do OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        let markersLayer = L.layerGroup().addTo(map);
+
+        // Função para carregar e exibir os pontos
+        async function loadOcorrencias(filtros = {}) {
+            markersLayer.clearLayers();
+            let url = '/api/ocorrencias';
+            const params = new URLSearchParams(filtros).toString();
+            if (params) url += '?' + params;
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                data.forEach(ocorrencia => {
+                    const lat = parseFloat(ocorrencia.ocorrencia_latitude);
+                    const lng = parseFloat(ocorrencia.ocorrencia_longitude);
+                    
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                        const marker = L.circleMarker([lat, lng], {
+                            radius: 6,
+                            fillColor: '#0066cc',
+                            color: '#fff',
+                            weight: 1,
+                            opacity: 1,
+                            fillOpacity: 0.8
+                        });
+
+                        marker.bindPopup(`
+                            <div class="info-box">
+                                <strong>Código:</strong> ${ocorrencia.codigo_ocorrencia}<br>
+                                <strong>País:</strong> ${ocorrencia.ocorrencia_pais}<br>
+                                <strong>Cidade:</strong> ${ocorrencia.ocorrencia_cidade}<br>
+                                <strong>UF:</strong> ${ocorrencia.ocorrencia_uf}<br>
+                                <strong>Classificação:</strong> ${ocorrencia.ocorrencia_classificacao}<br>
+                                <strong>Categoria:</strong> ${ocorrencia.ocorrencia_tipo_categoria}
+                            </div>
+                        `);
+
+                        marker.addTo(markersLayer);
+                    }
+                });
+            } catch (error) {
+                console.error('Erro ao carregar ocorrências:', error);
+            }
+        }
+
+        document.getElementById('filtros-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const cidade = document.getElementById('filtro-cidade').value;
+            const classificacao = document.getElementById('filtro-classificacao').value;
+            const categoria = document.getElementById('filtro-categoria').value;
+            loadOcorrencias({ cidade, classificacao, categoria });
+        });
+
+        document.getElementById('limpar-filtros').addEventListener('click', function() {
+            document.getElementById('filtros-form').reset();
+            loadOcorrencias();
+        });
+
+        // Carrega os pontos quando a página carregar
+        loadOcorrencias();
+    </script>
+</body>
+</html>
