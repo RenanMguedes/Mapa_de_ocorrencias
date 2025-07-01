@@ -1,4 +1,4 @@
-INSERT IGNORE INTO fatores (fk_Fator_contribuinte_fator_nome, fk_Ocorrencia_codigo_ocorrencia) VALUES ('APLICAÇÃO DE COMANDOS', 87125);
+ INSERT IGNORE INTO fatores (fk_Fator_contribuinte_fator_nome, fk_Ocorrencia_codigo_ocorrencia) VALUES ('APLICAÇÃO DE COMANDOS', 87125);
 INSERT IGNORE INTO fatores (fk_Fator_contribuinte_fator_nome, fk_Ocorrencia_codigo_ocorrencia) VALUES ('ATITUDE', 87124);
 INSERT IGNORE INTO fatores (fk_Fator_contribuinte_fator_nome, fk_Ocorrencia_codigo_ocorrencia) VALUES ('CONDIÇÕES METEOROLÓGICAS ADVERSAS', 87123);
 INSERT IGNORE INTO fatores (fk_Fator_contribuinte_fator_nome, fk_Ocorrencia_codigo_ocorrencia) VALUES ('PERCEPÇÃO', 87122);

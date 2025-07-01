@@ -1,9 +1,9 @@
 import csv
 import chardet
 
-arquivo_csv = 'entidade_OcorrenciaOK.csv'
+arquivo_csv = 'ocorrencias_corrigidas.csv'
 nome_tabela = 'ocorrencia'
-output_file = 'inserts_ocorrencia.sql'
+output_file = 'inserts_ocorrencia_corrigida_teste.sql'
 
 # 🔍 Detectar a codificação do arquivo CSV
 with open(arquivo_csv, 'rb') as f:

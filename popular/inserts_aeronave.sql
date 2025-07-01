@@ -1,4 +1,4 @@
-INSERT IGNORE INTO aeronave (aeronave_matricula, aeronave_modelo, aeronave_voo_origem, aeronave_voo_destino, fk_Fabricante_Nome) VALUES ('PSAEX', 'ERJ 190-400', 'VIRACOPOS', 'ORLANDO BEZERRA DE MENEZES', 'EMBRAER');
+	INSERT IGNORE INTO aeronave (aeronave_matricula, aeronave_modelo, aeronave_voo_origem, aeronave_voo_destino, fk_Fabricante_Nome) VALUES ('PSAEX', 'ERJ 190-400', 'VIRACOPOS', 'ORLANDO BEZERRA DE MENEZES', 'EMBRAER');
 INSERT IGNORE INTO aeronave (aeronave_matricula, aeronave_modelo, aeronave_voo_origem, aeronave_voo_destino, fk_Fabricante_Nome) VALUES ('PRYXD', 'ATR-72-212A (600)', 'TENENTE-CORONEL AVIADOR C�SAR BOMBONATO', 'TANCREDO NEVES', 'ATR - GIE AVIONS DE TRANSPORT R�GIONAL');
 INSERT IGNORE INTO aeronave (aeronave_matricula, aeronave_modelo, aeronave_voo_origem, aeronave_voo_destino, fk_Fabricante_Nome) VALUES ('PRXBT', 'A320-271N', 'GOVERNADOR ANDR� FRANCO MONTORO', 'PINTO MARTINS', 'AIRBUS S.A.S.');
 INSERT IGNORE INTO aeronave (aeronave_matricula, aeronave_modelo, aeronave_voo_origem, aeronave_voo_destino, fk_Fabricante_Nome) VALUES ('PRAKJ', 'ATR-72-212A (600)', 'SANTA MARIA', 'VIRACOPOS', 'ATR - GIE AVIONS DE TRANSPORT R�GIONAL');

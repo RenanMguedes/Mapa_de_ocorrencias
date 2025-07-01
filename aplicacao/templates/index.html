@@ -7,19 +7,26 @@
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <style>
+        body {
+            background: #181818;
+            color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
         #map {
             height: 600px;
             width: 100%;
         }
         .info-box {
             padding: 10px;
-            background: #fff;
+            background: #232323;
+            color: #f0f0f0;
             border-radius: 5px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            box-shadow: 0 0 15px rgba(0,0,0,0.4);
         }
         .filtros {
             margin-bottom: 20px;
-            background: #f5f5f5;
+            background: #222;
+            color: #f0f0f0;
             padding: 10px;
             border-radius: 8px;
             display: flex;
@@ -28,6 +35,28 @@
         }
         .filtros label {
             margin-right: 5px;
+        }
+        .filtros input {
+            background: #181818;
+            color: #f0f0f0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 2px 6px;
+        }
+        .filtros button {
+            background: #333;
+            color: #f0f0f0;
+            border: none;
+            border-radius: 4px;
+            padding: 5px 12px;
+            cursor: pointer;
+        }
+        .filtros button:hover {
+            background: #444;
+        }
+        h1 {
+            text-align: center;
+            color: #90caf9;
         }
     </style>
 </head>
@@ -45,7 +74,15 @@
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script>
         // Inicializa o mapa centralizando no Brasil
-        const map = L.map('map').setView([-15.7801, -47.9292], 4);
+
+        // Inicializa o mapa centralizando no Brasil
+        // Inicializa o mapa centralizando no Brasil
+        // Impede "dar voltas" no mapa, mas sem limitar o movimento lateral
+        const map = L.map('map', {
+            worldCopyJump: false, // impede múltiplas cópias do mundo
+            zoomControl: true,
+            attributionControl: true
+        }).setView([-15.7801, -47.9292], 4);
 
         // Adiciona o layer do OpenStreetMap
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -53,8 +90,14 @@
         }).addTo(map);
 
         let markersLayer = L.layerGroup().addTo(map);
+        // Elemento para mostrar detalhes
+        let detalhesDiv = document.createElement('div');
+        detalhesDiv.id = 'detalhes-ocorrencia';
+        detalhesDiv.style.marginTop = '20px';
+        document.body.appendChild(detalhesDiv);
 
         // Função para carregar e exibir os pontos
+
         async function loadOcorrencias(filtros = {}) {
             markersLayer.clearLayers();
             let url = '/api/ocorrencias';
@@ -67,25 +110,30 @@
                 data.forEach(ocorrencia => {
                     const lat = parseFloat(ocorrencia.ocorrencia_latitude);
                     const lng = parseFloat(ocorrencia.ocorrencia_longitude);
-                    
                     if (!isNaN(lat) && !isNaN(lng)) {
+                        // Define cor conforme classificação
+                        let cor = '#0066cc';
+                        if (ocorrencia.ocorrencia_classificacao && ocorrencia.ocorrencia_classificacao.toLowerCase() === 'acidente') {
+                            cor = '#d90429'; // vermelho
+                        } else if (ocorrencia.ocorrencia_classificacao && ocorrencia.ocorrencia_classificacao.toLowerCase() === 'incidente') {
+                            cor = '#0077ff'; // azul
+                        }
                         const marker = L.circleMarker([lat, lng], {
-                            radius: 6,
-                            fillColor: '#0066cc',
+                            radius: 7,
+                            fillColor: cor,
                             color: '#fff',
                             weight: 1,
                             opacity: 1,
-                            fillOpacity: 0.8
+                            fillOpacity: 0.85
                         });
 
                         marker.bindPopup(`
                             <div class="info-box">
                                 <strong>Código:</strong> ${ocorrencia.codigo_ocorrencia}<br>
-                                <strong>País:</strong> ${ocorrencia.ocorrencia_pais}<br>
                                 <strong>Cidade:</strong> ${ocorrencia.ocorrencia_cidade}<br>
                                 <strong>UF:</strong> ${ocorrencia.ocorrencia_uf}<br>
                                 <strong>Classificação:</strong> ${ocorrencia.ocorrencia_classificacao}<br>
-                                <strong>Categoria:</strong> ${ocorrencia.ocorrencia_tipo_categoria}
+                                <button onclick="verDetalhes('${ocorrencia.codigo_ocorrencia}')">Ver detalhes</button>
                             </div>
                         `);
 
@@ -94,6 +142,57 @@
                 });
             } catch (error) {
                 console.error('Erro ao carregar ocorrências:', error);
+            }
+        }
+
+        // Função global para ser chamada pelo botão do popup
+        window.verDetalhes = async function(codigo) {
+            detalhesDiv.innerHTML = '<div class="info-box">Carregando detalhes...</div>';
+            try {
+                const resp = await fetch(`/api/ocorrencia/${codigo}`);
+                const dados = await resp.json();
+                if (dados.error) {
+                    detalhesDiv.innerHTML = `<div class="info-box">Erro: ${dados.error}</div>`;
+                    return;
+                }
+                let html = `<div class="info-box">
+                    <h3>Detalhes da Ocorrência</h3>
+                    <strong>Código:</strong> ${dados.ocorrencia.codigo_ocorrencia}<br>
+                    <strong>Cidade:</strong> ${dados.ocorrencia.ocorrencia_cidade}<br>
+                    <strong>UF:</strong> ${dados.ocorrencia.ocorrencia_uf}<br>
+                    <strong>Classificação:</strong> ${dados.ocorrencia.ocorrencia_classificacao}<br>
+                    <strong>Data:</strong> ${dados.ocorrencia.ocorrencia_dia || ''}<br>
+                    <strong>Resumo:</strong> ${dados.ocorrencia.ocorrencia_resumo || ''}<br>
+                    <hr>
+                    <strong>Aeronave(s) envolvida(s):</strong><br>
+                    <ul>`;
+                if (dados.aeronaves && dados.aeronaves.length > 0) {
+                    dados.aeronaves.forEach(a => {
+                        html += `<li>Modelo: ${a.aeronave_modelo || ''} - Matrícula: ${a.aeronave_matricula || ''}${a.aeronave_problema ? ' <b>(Problema: ' + a.aeronave_problema + ')</b>' : ''}</li>`;
+                    });
+                } else {
+                    html += '<li>Nenhuma aeronave encontrada.</li>';
+                }
+                html += `</ul><hr><strong>Fatores contribuintes:</strong><br><ul>`;
+                if (dados.fatores && dados.fatores.length > 0) {
+                    dados.fatores.forEach(f => {
+                        html += `<li>${f.fator_nome || f.fator_descricao || ''}</li>`;
+                    });
+                } else {
+                    html += '<li>Nenhum fator encontrado.</li>';
+                }
+                html += '</ul>';
+                if (dados.recomendacoes && dados.recomendacoes.length > 0) {
+                    html += `<hr><strong>Recomendações:</strong><ul>`;
+                    dados.recomendacoes.forEach(r => {
+                        html += `<li>${r.recomendacao_descricao || r.recomendacao}</li>`;
+                    });
+                    html += '</ul>';
+                }
+                html += '</div>';
+                detalhesDiv.innerHTML = html;
+            } catch (e) {
+                detalhesDiv.innerHTML = `<div class="info-box">Erro ao buscar detalhes.</div>`;
             }
         }
 
