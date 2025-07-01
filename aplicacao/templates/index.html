@@ -58,21 +58,200 @@
             text-align: center;
             color: #90caf9;
         }
+        .estatisticas-container {
+            margin-top: 20px;
+            background: #222;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.4);
+        }
+        .estatisticas-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .estatisticas-table th, .estatisticas-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #444;
+        }
+        .estatisticas-table th {
+            background: #333;
+        }
     </style>
 </head>
 <body>
     <h1>Mapa de Ocorrências no Brasil</h1>
-    <form class="filtros" id="filtros-form">
-        <label>Cidade: <input type="text" id="filtro-cidade" name="cidade"></label>
-        <label>Classificação: <input type="text" id="filtro-classificacao" name="classificacao"></label>
-        <label>Categoria: <input type="text" id="filtro-categoria" name="categoria"></label>
-        <button type="submit">Filtrar</button>
-        <button type="button" id="limpar-filtros">Limpar</button>
-    </form>
     <div id="map"></div>
+    <h2 style="text-align:center;color:#fff;font-size:2em;margin:30px 0 10px 0;">Consultas</h2>
+    <button id="btn-estatisticas" style="display:block;margin:20px auto;padding:10px 20px;background-color:#4CAF50;color:white;border:none;border-radius:4px;cursor:pointer;font-size:16px;">Ver Estatísticas de Acidentes por Aeronave</button>
+    <button id="btn-estatisticas-fabricante" style="display:block;margin:10px auto 10px auto;padding:10px 20px;background-color:#2196F3;color:white;border:none;border-radius:4px;cursor:pointer;font-size:16px;">Ver Estatísticas de Acidentes por Fabricante</button>
+    <button id="btn-ultima-ocorrencia-fabricante" style="display:block;margin:10px auto 20px auto;padding:10px 20px;background-color:#FF9800;color:white;border:none;border-radius:4px;cursor:pointer;font-size:16px;">Data da Ocorrência Mais Recente por Fabricante</button>
+    <button id="btn-top-matriculas" style="display:block;margin:10px auto 20px auto;padding:10px 20px;background-color:#9C27B0;color:white;border:none;border-radius:4px;cursor:pointer;font-size:16px;">Top 10 Matrículas com Mais Acidentes</button>
+    <div id="fatores-dinamicos-container" style="margin: 20px 0;"></div>
+    <div id="estatisticas-acidentes"></div>
+    <div id="estatisticas-fabricante"></div>
+    <div id="estatisticas-ultima-ocorrencia"></div>
+    <div id="estatisticas-top-matriculas"></div>
+    <div id="estatisticas-fator"></div>
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script>
+        // Botão para mostrar/ocultar data da última ocorrência por fabricante
+        let ultimaOcorrenciaVisivel = false;
+        async function toggleUltimaOcorrenciaFabricante() {
+            const estatisticasDiv = document.getElementById('estatisticas-ultima-ocorrencia');
+            if (ultimaOcorrenciaVisivel) {
+                estatisticasDiv.innerHTML = '';
+                ultimaOcorrenciaVisivel = false;
+                return;
+            }
+            try {
+                const response = await fetch('/api/estatisticas/data-ultima-ocorrencia-fabricante');
+                const data = await response.json();
+                if (!Array.isArray(data)) {
+                    estatisticasDiv.innerHTML = '<div class="info-box">Erro ao carregar estatísticas.</div>';
+                    ultimaOcorrenciaVisivel = true;
+                    return;
+                }
+                let html = `
+                    <div class="estatisticas-container">
+                        <h2>Data da Ocorrência Mais Recente por Fabricante</h2>
+                        <table class="estatisticas-table">
+                            <thead>
+                                <tr>
+                                    <th>Fabricante</th>
+                                    <th>Data da Última Ocorrência</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                data.forEach(item => {
+                    html += `
+                        <tr>
+                            <td>${item.Fabricante}</td>
+                            <td>${item.Data_Ultima_Ocorrencia || '-'}</td>
+                        </tr>
+                    `;
+                });
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                estatisticasDiv.innerHTML = html;
+                ultimaOcorrenciaVisivel = true;
+            } catch (error) {
+                estatisticasDiv.innerHTML = '<div class="info-box">Erro ao carregar estatísticas.</div>';
+                ultimaOcorrenciaVisivel = true;
+            }
+        }
+        document.getElementById('btn-ultima-ocorrencia-fabricante').addEventListener('click', toggleUltimaOcorrenciaFabricante);
+
+        // Botão para mostrar/ocultar top 10 matrículas com mais acidentes
+        let topMatriculasVisivel = false;
+        async function toggleTopMatriculas() {
+            const estatisticasDiv = document.getElementById('estatisticas-top-matriculas');
+            if (topMatriculasVisivel) {
+                estatisticasDiv.innerHTML = '';
+                topMatriculasVisivel = false;
+                return;
+            }
+            try {
+                const response = await fetch('/api/estatisticas/top-matriculas-acidentes');
+                const data = await response.json();
+                if (!Array.isArray(data)) {
+                    estatisticasDiv.innerHTML = '<div class="info-box">Erro ao carregar estatísticas.</div>';
+                    topMatriculasVisivel = true;
+                    return;
+                }
+                let html = `
+                    <div class="estatisticas-container">
+                        <h2>Top 10 Matrículas de Aeronaves com Mais Acidentes</h2>
+                        <table class="estatisticas-table">
+                            <thead>
+                                <tr>
+                                    <th>Matrícula</th>
+                                    <th>Modelo</th>
+                                    <th>Fabricante</th>
+                                    <th>Total de Acidentes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                data.forEach(item => {
+                    html += `
+                        <tr>
+                            <td>${item.aeronave_matricula}</td>
+                            <td>${item.aeronave_modelo}</td>
+                            <td>${item.Fabricante}</td>
+                            <td>${item.Total_Acidentes}</td>
+                        </tr>
+                    `;
+                });
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                estatisticasDiv.innerHTML = html;
+                topMatriculasVisivel = true;
+            } catch (error) {
+                estatisticasDiv.innerHTML = '<div class="info-box">Erro ao carregar estatísticas.</div>';
+                topMatriculasVisivel = true;
+            }
+        }
+        document.getElementById('btn-top-matriculas').addEventListener('click', toggleTopMatriculas);
+
+        // Botões dinâmicos para fatores contribuintes
+        async function carregarFatoresUnicos() {
+            const container = document.getElementById('fatores-dinamicos-container');
+            container.innerHTML = '<div class="info-box">Carregando fatores...</div>';
+            try {
+                const response = await fetch('/api/fatores-unicos');
+                const fatores = await response.json();
+                if (!Array.isArray(fatores)) {
+                    container.innerHTML = '<div class="info-box">Erro ao carregar fatores.</div>';
+                    return;
+                }
+                let html = '<div style="display:flex;flex-wrap:wrap;gap:8px;">';
+                fatores.forEach(fator => {
+                    html += `<button class="btn-fator" style="background:#607d8b;color:#fff;border:none;border-radius:4px;padding:6px 14px;cursor:pointer;" onclick="mostrarAeronavesRecomendacoesPorFator('${encodeURIComponent(fator)}')">${fator}</button>`;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+            } catch (e) {
+                container.innerHTML = '<div class="info-box">Erro ao carregar fatores.</div>';
+            }
+        }
+        window.mostrarAeronavesRecomendacoesPorFator = async function(fator_nome) {
+            const estatisticasDiv = document.getElementById('estatisticas-fator');
+            estatisticasDiv.innerHTML = '<div class="info-box">Carregando dados...</div>';
+            try {
+                const response = await fetch(`/api/estatisticas/aeronaves-recomendacoes-por-fator/${fator_nome}`);
+                const data = await response.json();
+                if (!Array.isArray(data)) {
+                    estatisticasDiv.innerHTML = '<div class="info-box">Erro ao carregar dados.</div>';
+                    return;
+                }
+                let html = `<div class="estatisticas-container"><h2>Aeronaves e Recomendações para o Fator: ${decodeURIComponent(fator_nome)}</h2>`;
+                if (data.length === 0) {
+                    html += '<div class="info-box">Nenhum dado encontrado para este fator.</div>';
+                } else {
+                    html += `<table class="estatisticas-table"><thead><tr><th>Matrícula</th><th>Modelo</th><th>Fator</th><th>Recomendação</th></tr></thead><tbody>`;
+                    data.forEach(item => {
+                        html += `<tr><td>${item.aeronave_matricula}</td><td>${item.aeronave_modelo}</td><td>${item.fator_nome}</td><td>${item.recomendacao_conteudo || '-'}</td></tr>`;
+                    });
+                    html += '</tbody></table>';
+                }
+                html += '</div>';
+                estatisticasDiv.innerHTML = html;
+            } catch (e) {
+                estatisticasDiv.innerHTML = '<div class="info-box">Erro ao carregar dados.</div>';
+            }
+        }
+        // Carrega os fatores ao abrir a página
+        carregarFatoresUnicos();
         // Inicializa o mapa centralizando no Brasil
 
         // Inicializa o mapa centralizando no Brasil
@@ -161,8 +340,6 @@
                     <strong>Cidade:</strong> ${dados.ocorrencia.ocorrencia_cidade}<br>
                     <strong>UF:</strong> ${dados.ocorrencia.ocorrencia_uf}<br>
                     <strong>Classificação:</strong> ${dados.ocorrencia.ocorrencia_classificacao}<br>
-                    <strong>Data:</strong> ${dados.ocorrencia.ocorrencia_dia || ''}<br>
-                    <strong>Resumo:</strong> ${dados.ocorrencia.ocorrencia_resumo || ''}<br>
                     <hr>
                     <strong>Aeronave(s) envolvida(s):</strong><br>
                     <ul>`;
@@ -182,13 +359,6 @@
                     html += '<li>Nenhum fator encontrado.</li>';
                 }
                 html += '</ul>';
-                if (dados.recomendacoes && dados.recomendacoes.length > 0) {
-                    html += `<hr><strong>Recomendações:</strong><ul>`;
-                    dados.recomendacoes.forEach(r => {
-                        html += `<li>${r.recomendacao_descricao || r.recomendacao}</li>`;
-                    });
-                    html += '</ul>';
-                }
                 html += '</div>';
                 detalhesDiv.innerHTML = html;
             } catch (e) {
@@ -196,18 +366,108 @@
             }
         }
 
-        document.getElementById('filtros-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const cidade = document.getElementById('filtro-cidade').value;
-            const classificacao = document.getElementById('filtro-classificacao').value;
-            const categoria = document.getElementById('filtro-categoria').value;
-            loadOcorrencias({ cidade, classificacao, categoria });
-        });
+        // Switch para mostrar/ocultar estatísticas
+        let estatisticasVisivel = false;
+        async function toggleEstatisticasAcidentes() {
+            const estatisticasDiv = document.getElementById('estatisticas-acidentes');
+            if (estatisticasVisivel) {
+                estatisticasDiv.innerHTML = '';
+                estatisticasVisivel = false;
+                return;
+            }
+            try {
+                const response = await fetch('/api/estatisticas/acidentes-por-aeronave');
+                const data = await response.json();
+                let html = `
+                    <div class="estatisticas-container">
+                        <h2>Top 20 Aeronaves com Mais Acidentes</h2>
+                        <table class="estatisticas-table">
+                            <thead>
+                                <tr>
+                                    <th>Matrícula</th>
+                                    <th>Modelo</th>
+                                    <th>Fabricante</th>
+                                    <th>Total de Acidentes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                data.forEach(item => {
+                    html += `
+                        <tr>
+                            <td>${item.aeronave_matricula}</td>
+                            <td>${item.aeronave_modelo}</td>
+                            <td>${item.Fabricante}</td>
+                            <td>${item.Total_Acidentes}</td>
+                        </tr>
+                    `;
+                });
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                estatisticasDiv.innerHTML = html;
+                estatisticasVisivel = true;
+            } catch (error) {
+                estatisticasDiv.innerHTML = '<div class="info-box">Erro ao carregar estatísticas.</div>';
+                estatisticasVisivel = true;
+            }
+        }
+        document.getElementById('btn-estatisticas').addEventListener('click', toggleEstatisticasAcidentes);
 
-        document.getElementById('limpar-filtros').addEventListener('click', function() {
-            document.getElementById('filtros-form').reset();
-            loadOcorrencias();
-        });
+        // Switch para mostrar/ocultar estatísticas por fabricante
+        let estatisticasFabricanteVisivel = false;
+        async function toggleEstatisticasFabricante() {
+            const estatisticasDiv = document.getElementById('estatisticas-fabricante');
+            if (estatisticasFabricanteVisivel) {
+                estatisticasDiv.innerHTML = '';
+                estatisticasFabricanteVisivel = false;
+                return;
+            }
+            try {
+                const response = await fetch('/api/estatisticas/acidentes-por-fabricante');
+                const data = await response.json();
+                if (!Array.isArray(data)) {
+                    estatisticasDiv.innerHTML = '<div class="info-box">Erro ao carregar estatísticas.</div>';
+                    estatisticasFabricanteVisivel = true;
+                    return;
+                }
+                let html = `
+                    <div class="estatisticas-container">
+                        <h2>Acidentes por Fabricante</h2>
+                        <table class="estatisticas-table">
+                            <thead>
+                                <tr>
+                                    <th>Fabricante</th>
+                                    <th>País</th>
+                                    <th>Total de Acidentes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                data.forEach(item => {
+                    html += `
+                        <tr>
+                            <td>${item.Fabricante}</td>
+                            <td>${item.Pais}</td>
+                            <td>${item.Numero_de_Acidentes}</td>
+                        </tr>
+                    `;
+                });
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                estatisticasDiv.innerHTML = html;
+                estatisticasFabricanteVisivel = true;
+            } catch (error) {
+                estatisticasDiv.innerHTML = '<div class="info-box">Erro ao carregar estatísticas.</div>';
+                estatisticasFabricanteVisivel = true;
+            }
+        }
+        document.getElementById('btn-estatisticas-fabricante').addEventListener('click', toggleEstatisticasFabricante);
 
         // Carrega os pontos quando a página carregar
         loadOcorrencias();
