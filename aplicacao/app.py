@@ -2,16 +2,28 @@
 from flask import Flask, render_template, jsonify
 import pymysql
 import datetime
+from dotenv import load_dotenv
+import os
 
 # =================== CONFIGURAÇÃO ===================
+load_dotenv()
+
 app = Flask(__name__)
 
+
+# Carrega variáveis do .env
+DB_DATABASE = os.getenv('DB_DATABASE', 'ocorrencias')
+DB_USER = os.getenv('DB_USER', 'root')
+DB_PASSWORD = os.getenv('DB_PASSWORD', '1333medeiros')
+DB_HOST = os.getenv('DB_HOST', 'localhost')
+DB_PORT = int(os.getenv('DB_PORT', 3306))
+
 DB_CONFIG = {
-    'database': 'ocorrencias',
-    'user': 'root',
-    'password': '1333medeiros',
-    'host': 'localhost',
-    'port': 3306,
+    'database': DB_DATABASE,
+    'user': DB_USER,
+    'password': DB_PASSWORD,
+    'host': DB_HOST,
+    'port': DB_PORT,
     'cursorclass': pymysql.cursors.DictCursor
 }
 
